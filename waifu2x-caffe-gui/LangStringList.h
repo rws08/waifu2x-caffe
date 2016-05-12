@@ -125,7 +125,11 @@ private:
 
 			jsonBuf[jsonBuf.size() - 1] = '\0';
 
-			d.Parse(jsonBuf.data());
+			const char *data = jsonBuf.data();
+			if (jsonBuf.size() > 3 && (unsigned char)data[0] == 0xEF && (unsigned char)data[1] == 0xBB && (unsigned char)data[2] == 0xBF)
+				data += 3;
+
+			d.Parse(data);
 
 			if (d.HasParseError())
 				throw 0;
@@ -135,7 +139,8 @@ private:
 				auto name = Utf8ToUtf16(it->name.GetString(), it->name.GetStringLength());
 				auto val = Utf8ToUtf16(it->value.GetString(), it->value.GetStringLength());
 
-				langStringMap.emplace(name, val);
+				if(val.length() > 0)
+					langStringMap.emplace(name, val);
 			}
 		}
 		catch (...)
@@ -163,9 +168,16 @@ public:
 
 		LangList.clear();
 
+		bool isFirst = true;
+
 		std::string str;
 		while (getline(ifs, str))
 		{
+			if (isFirst && str.size() > 3 && (unsigned char)str[0] == 0xEF && (unsigned char)str[1] == 0xBB && (unsigned char)str[2] == 0xBF)
+				str.erase(0, 3);
+
+			isFirst = false;
+
 			if (str.length() > 0 && str.front() == ';')
 				continue;
 
